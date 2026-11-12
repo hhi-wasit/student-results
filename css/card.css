@@ -1,0 +1,74 @@
+/* =============================================================
+   card.css – result card + A4 page layout.
+   Self-contained (no CSS variables from main.css) because the same
+   stylesheet is embedded into the SVG used for PDF/PNG export.
+   A4 at 96 dpi = 794 × 1123 px.
+   ============================================================= */
+.a4 {
+  width: 794px;
+  height: 1123px;
+  padding: 26px 30px;
+  box-sizing: border-box;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  direction: rtl;
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  color: #000;
+  overflow: hidden;
+}
+.a4 .slot { flex: 1 1 0; min-height: 0; display: flex; padding: 7px 0; box-sizing: border-box; border-bottom: 1px dashed #b9c0cc; }
+.a4 .slot:last-child { border-bottom: 0; }
+.a4.per-1 .slot { flex: 0 0 auto; border-bottom: 0; }
+.rc-empty { flex: 1; }
+
+.rc {
+  --k: 1;
+  flex: 1;
+  direction: rtl;
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  font-size: calc(12.5px * var(--k));
+  line-height: 1.35;
+  color: #000;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: calc(4px * var(--k)) calc(2px * var(--k));
+}
+.a4.per-2 .rc { --k: 1.28; }
+.a4.per-1 .rc { --k: 1.55; padding-bottom: 30px; }
+.rc.single { --k: 1; padding: 14px; width: 734px; }
+
+.rc table { border-collapse: collapse; width: 100%; table-layout: auto; }
+.rc td, .rc th { border: 1px solid #000; padding: calc(1px * var(--k)) calc(6px * var(--k)); vertical-align: middle; }
+
+/* header band */
+.rc-head > tbody > tr > td, .rc-head > tr > td { border: 0; }
+.rc-head { border: 1.4px solid #000 !important; }
+.rc-org { width: 34%; font-weight: 700; font-size: 1.12em; text-align: center; line-height: 1.45; }
+.rc-title { width: 44%; font-weight: 700; font-size: 1.12em; text-align: center; line-height: 1.45; }
+.rc-logo { width: 22%; text-align: center; border-right: 0; }
+.rc-logo img { max-height: calc(78px * var(--k)); max-width: 100%; object-fit: contain; display: inline-block; }
+.rc-nrw { padding: 0 0 2px 0 !important; }
+.rc-nr td { font-size: 1.05em; padding: 0 8px; height: calc(22px * var(--k)); }
+.rc-nr .k { width: 1%; white-space: nowrap; font-weight: 700; }
+.rc-nr .v { text-align: center; }
+.rc-nr .name { width: 52%; font-weight: 700; }
+.rc-nr .res { width: 28%; font-weight: 700; }
+.rc .ok { color: #0a7a32; }
+.rc .f, .rc td.f { color: #d40000; }
+
+/* subject tables */
+.rc-tables { display: flex; flex-direction: column; gap: calc(8px * var(--k)); margin-top: calc(9px * var(--k)); }
+.rc-subj th { font-weight: 700; font-size: 1.04em; text-align: center; white-space: nowrap; background: #fff; height: calc(22px * var(--k)); }
+.rc-subj td.g { text-align: center; font-weight: 700; font-size: 1.04em; height: calc(21px * var(--k)); }
+.rc-subj .num { font-weight: 400; font-size: .82em; color: #333; }
+.rc-subj td.g.f .num { color: #d40000; }
+
+/* footer */
+.rc-foot { margin-top: auto; padding-top: calc(10px * var(--k)); display: flex; align-items: flex-start; gap: 12px; }
+.rc-note { flex: 1.25; font-size: .88em; padding-top: 2px; }
+.rc-sig { flex: 1; text-align: center; font-weight: 700; font-size: 1.04em; line-height: 1.5; }
+.rc-sig div:last-child { font-weight: 600; }

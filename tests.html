@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>الاختبار الذاتي – نظام النتائج</title>
+  <link rel="icon" href="assets/logo-default.jpeg" />
+  <link rel="stylesheet" href="css/fonts.css" />
+  <link rel="stylesheet" href="css/main.css" />
+  <style>
+    body { padding: 24px; }
+    .ok { color: var(--pass); font-weight: 800; }
+    .bad { color: var(--fail); font-weight: 800; }
+    td code { direction: ltr; display: inline-block; }
+    #summary { font-size: 20px; font-weight: 800; margin: 10px 0 16px; }
+  </style>
+  <script src="vendor/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin-top:0">الاختبار الذاتي لقواعد الاحتساب والاستيراد</h2>
+    <p class="muted">يتحقق من أن الحسابات تطابق معادلات ملف Excel الخاص بالقسم. <a href="index.html">العودة إلى النظام</a></p>
+    <div id="summary">جارٍ التشغيل…</div>
+    <table class="tbl"><thead><tr><th>#</th><th>الاختبار</th><th>المتوقع</th><th>الناتج</th><th>الحالة</th></tr></thead><tbody id="out"></tbody></table>
+  </div>
+  <script type="module">
+    import { computeStage, computeFinal, computeStudent, gradeLabel, stageTotalUnits } from './js/calc.js';
+    import { parseGrade, normalizeDigits } from './js/utils.js';
+    import { DEFAULT_SUBJECTS, DEFAULT_SETTINGS, defaultState } from './js/config.js';
+    import { buildWorkbook, workbookToArrayBuffer } from './js/xlsxio.js';
+    import { parseWorkbook } from './js/parser.js';
+
+    const out = document.getElementById('out');
+    let n = 0, pass = 0;
+    const show = (v) => (typeof v === 'object' ? JSON.stringify(v) : String(v));
+    function t(name, expected, actual, cmp) {
+      n++;
+      const ok = cmp ? cmp(expected, actual) : show(expected) === show(actual);
+      if (ok) pass++;
+      out.insertAdjacentHTML('beforeend', `<tr><td>${n}</td><td>${name}</td><td><code>${show(expected)}</code></td><td><code>${show(actual)}</code></td><td class="${ok ? 'ok' : 'bad'}">${ok ? '✔ نجح' : '✘ فشل'}</td></tr>`);
+    }
+    const near = (a, b) => Math.abs(a - b) < 1e-4;
+    const S1 = DEFAULT_SUBJECTS.s1, S2 = DEFAULT_SUBJECTS.s2;
+    const counted1 = S1.filter((s) => s.counted);
+    const g1 = (arr) => Object.fromEntries(counted1.map((s, i) => [s.id, arr[i]]));
+
+    // ---- spec test 1 ----
+    const ex = [88, 84, 91.5, 87.5, 86, 79, 100, 87, 100, 98];
+    const r1 = computeStage(g1(ex), S1);
+    t('مجموع الوحدات للمرحلة الاولى', 60, stageTotalUnits(S1));
+    t('مجموع الوحدات للمرحلة الثانية', 76, stageTotalUnits(S2));
+    t('مثال المواصفات: مجموع التراجيح', 5276, r1.sum, near);
+    t('مثال المواصفات: المعدل', 87.9333, r1.avg, near);
+    t('مثال المواصفات: النتيجة', 'ناجح', r1.result);
+    t('مثال المواصفات: التقدير', 'جيد جدا', r1.label);
+
+    // ---- spec test 2: one fail, avg >= 60 ----
+    const ex2 = [...ex]; ex2[6] = 45;
+    const r2 = computeStage(g1(ex2), S1);
+    t('درجة 45 واحدة مع معدل ≥ 60', 'مكمل بمادة', r2.result);
+    t('درجة الرسوب تبقى ضمن المعدل', (5276 - 100 * 2 + 45 * 2) / 60, r2.avg, near);
+
+    // ---- result rules ----
+    const fill = (v) => counted1.map(() => v);
+    t('F=0 ومعدل < 60', 'مكمل بالمعدل', computeStage(g1(fill(55)), S1).result);
+    const a = fill(55); a[0] = 40;
+    t('F=1 ومعدل < 60', 'مكمل بمادة+المعدل', computeStage(g1(a), S1).result);
+    const b = fill(90); b[6] = 40; b[7] = 30;
+    t('F=2 ومعدل ≥ 60', 'مكمل بمادتين', computeStage(g1(b), S1).result);
+    const c = fill(52); c[6] = 40; c[7] = 30;
+    t('F=2 ومعدل < 60', 'راسب', computeStage(g1(c), S1).result);
+    const d = fill(95); d[6] = 40; d[7] = 30; d[8] = 20;
+    t('F=3 (حتى مع معدل مرتفع)', 'راسب', computeStage(g1(d), S1).result);
+    const e = fill(60); e[0] = 49.99;
+    t('49.99 تعتبر رسوباً', 1, computeStage(g1(e), S1).failed);
+    t('المعدل = 60 بالضبط → ناجح', 'ناجح', computeStage(g1(fill(60)), S1).result);
+
+    // ---- empty grades ----
+    const inc = g1(ex); delete inc.s1_comp;
+    const ri = computeStage(inc, S1);
+    t('درجة فارغة → غير مكتمل (وليس راسب)', 'غير مكتمل', ri.result);
+    t('درجة فارغة → المعدل غير محسوب', null, ri.avg);
+    t('لا توجد أي درجة → بدون نتيجة', null, computeStage({}, S1).result);
+
+    // ---- ethics ----
+    t('اخلاقيات المهنة غير محتسبة افتراضياً', 'ناجح', computeStage({ ...g1(ex), s1_ethics: 10 }, S1).result);
+    const S1e = S1.map((s) => (s.id === 's1_ethics' ? { ...s, counted: true } : s));
+    t('عند احتساب الاخلاقيات: مجموع الوحدات', 62, stageTotalUnits(S1e));
+    t('عند احتساب الاخلاقيات: رسوبها يُحتسب', 'مكمل بمادة', computeStage({ ...g1(ex), s1_ethics: 10 }, S1e).result);
+
+    // ---- grade labels ----
+    t('التقديرات عند الحدود', 'امتياز,جيد جدا,جيد,متوسط,مقبول,ضعيف,ضعيف', [90, 89.99, 70, 60, 50, 49.99, 0].map(gradeLabel).join(','));
+    t('80 → جيد جدا', 'جيد جدا', gradeLabel(80));
+
+    // ---- final ----
+    const s1 = computeStage(g1(ex), S1);
+    const g2 = Object.fromEntries(S2.map((s) => [s.id, 80]));
+    const s2 = computeStage(g2, S2);
+    const f = computeFinal(s1, s2, 'مستوفي', DEFAULT_SETTINGS);
+    t('النهائي: ناجح + ناجح + مستوفي', 'ناجح', f.result);
+    t('النهائي: 0.4×م1 + 0.6×م2', 0.4 * (5276 / 60) + 0.6 * 80, f.avg, near);
+    t('النهائي: التقدير', 'جيد جدا', f.label);
+    const f2 = computeFinal(s1, s2, 'غير مستوفي', DEFAULT_SETTINGS);
+    t('النهائي: التدريب غير مستوفي → راسب ومعدل 0', 'راسب|0|ضعيف', `${f2.result}|${f2.avg}|${f2.label}`);
+    const s2b = computeStage({ ...g2, s2_emerg: 40 }, S2);
+    t('النهائي: م2 مكمل → راسب', 'راسب', computeFinal(s1, s2b, 'مستوفي', DEFAULT_SETTINGS).result);
+    t('النهائي: التدريب غير محدد → غير مكتمل', 'غير مكتمل', computeFinal(s1, s2, '', DEFAULT_SETTINGS).result);
+
+    // ---- input parsing ----
+    t('أرقام هندية ٨٧٫٥', 87.5, parseGrade('٨٧٫٥').value);
+    t('فاصلة عشرية 99,25', 99.25, parseGrade('99,25').value);
+    t('قيمة 101 مرفوضة', 'خارج المدى 0–100', parseGrade('101').error);
+    t('نص غير رقمي مرفوض', 'قيمة غير رقمية', parseGrade('غ').error);
+    t('خلية فارغة = غير مدخلة', null, parseGrade('  ').value);
+    t('تحويل الأرقام', '2004', normalizeDigits('٢٠٠٤'));
+
+    // ---- Excel round trip ----
+    const st = defaultState();
+    st.students = [
+      { id: 1, serial: 1, name: 'زينب علي حسين', birth: '2004', gender: 'انثى', edu: 'الفرع العلمي', grades: { ...g1(ex), ...g2 }, invalid: {}, summer: 'مستوفي', notes1: '', notes2: '', notesF: '' },
+      { id: 2, serial: 2, name: 'فاطمة كاظم', birth: '2005', gender: 'انثى', edu: 'اعدادية تمريض', grades: { ...g1(ex2) }, invalid: {}, summer: '', notes1: 'ملاحظة', notes2: '', notesF: '' },
+    ];
+    const wb = buildWorkbook(st);
+    const buf = workbookToArrayBuffer(wb);
+    const res = parseWorkbook(new Uint8Array(buf), st.subjects);
+    t('تصدير ثم استيراد: عدد الطلبة', 2, res.students.length);
+    t('تصدير ثم استيراد: عدد مواد م1 / م2', '11/9', `${res.detected.s1.length}/${res.detected.s2.length}`);
+    t('تصدير ثم استيراد: الدرجات متطابقة', JSON.stringify(st.students[0].grades), JSON.stringify(Object.fromEntries(Object.keys(st.students[0].grades).map((k) => [k, res.students[0].grades[k]]))));
+    t('تصدير ثم استيراد: التدريب والملاحظات', 'مستوفي|ملاحظة', `${res.students[0].summer}|${res.students[1].notes1}`);
+    const rr = computeStudent(res.students[0], st.subjects, st.settings);
+    t('بعد الاستيراد: إعادة الحساب', 'ناجح|ناجح|ناجح', `${rr.s1.result}|${rr.s2.result}|${rr.final.result}`);
+    const tpl = parseWorkbook(new Uint8Array(workbookToArrayBuffer(buildWorkbook(st, { emptyRows: 100 }))), st.subjects);
+    t('القالب الفارغ (100 صف مرقّم) → 0 طالب', '0|true', `${tpl.students.length}|${tpl.ok}`);
+
+    document.getElementById('summary').innerHTML = `<span class="${pass === n ? 'ok' : 'bad'}">${pass} / ${n} اختبار ناجح</span>`;
+    window.__TESTS__ = { n, pass };
+  </script>
+</body>
+</html>

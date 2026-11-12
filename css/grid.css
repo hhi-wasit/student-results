@@ -1,0 +1,65 @@
+/* =============================================================
+   grid.css – spreadsheet-like grade-entry grid.
+   ============================================================= */
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.toolbar .search { flex: 1 1 220px; max-width: 320px; }
+.toolbar select { width: auto; }
+.toolbar .sep { width: 1px; height: 26px; background: var(--line); margin: 0 2px; }
+.grid-meta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin: 8px 2px 0; }
+.grid-meta .kbd { margin: 0 2px; }
+
+.sg-wrap {
+  position: relative; overflow: auto; max-height: calc(100vh - 250px); min-height: 260px;
+  background: #fff; border-radius: 12px; box-shadow: var(--shadow); outline: none;
+}
+.sg-wrap:focus-visible { box-shadow: var(--shadow), 0 0 0 3px rgba(74,124,247,.25); }
+.sg { border-collapse: separate; border-spacing: 0; font-size: 13px; user-select: none; }
+.sg th, .sg td { border-left: 1px solid #edf0f6; border-bottom: 1px solid #edf0f6; height: 32px; padding: 0 7px; white-space: nowrap; text-align: center; }
+.sg thead th { position: sticky; z-index: 3; background: #f6f8fd; font-weight: 700; color: #4b5671; font-size: 12.5px; }
+.sg thead tr.r1 th { top: 0; height: 34px; }
+.sg thead tr.r2 th { top: 34px; height: 46px; line-height: 1.25; white-space: normal; min-width: 64px; max-width: 120px; font-size: 12px; }
+.sg thead th.g-s1 { background: #e9efff; color: #2c4fb6; }
+.sg thead th.g-s2 { background: #f9eafb; color: #8a3aa3; }
+.sg thead th.g-fn { background: #e6f7ef; color: #16794a; }
+.sg thead th .units { display: block; font-weight: 600; color: #8a93a8; font-size: 11px; }
+.sg thead th .hint-dot { color: var(--c-orange); cursor: help; }
+.grp-toggle { border: 0; background: transparent; cursor: pointer; font-weight: 800; color: inherit; display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; }
+.grp-toggle:hover { background: rgba(255,255,255,.7); }
+.grp-toggle .ic { width: 15px; height: 15px; transition: transform .2s; }
+.grp-toggle.collapsed .ic { transform: rotate(90deg); }
+
+/* sticky identity columns (right side in RTL) */
+.sg .st-0 { position: sticky; right: 0; z-index: 2; background: #fff; min-width: 46px; width: 46px; color: var(--muted); }
+.sg .st-1 { position: sticky; right: 46px; z-index: 2; background: #fff; min-width: 210px; max-width: 260px; text-align: right; box-shadow: -6px 0 8px -6px rgba(30,50,100,.15); overflow: hidden; text-overflow: ellipsis; }
+.sg thead .st-0, .sg thead .st-1 { z-index: 4; background: #f6f8fd; }
+
+.sg td { cursor: cell; transition: background .08s; }
+.sg td.ro { background: #fbfcfe; color: #5c6680; cursor: default; }
+.sg td.num { direction: ltr; font-variant-numeric: tabular-nums; }
+.sg td.t-l { text-align: right; }
+.sg td.pass { color: var(--pass); font-weight: 700; }
+.sg td.fail { color: var(--fail); font-weight: 700; background: #fff5f6; }
+.sg td.invalid { background: #ffe3e7 !important; color: #b0132b; outline: 1.5px solid #f27b8c; outline-offset: -2px; }
+.sg td.empty-g { color: #c3c9d6; }
+.sg tr:hover td:not(.sel):not(.act) { background-color: #f7f9ff; }
+.sg tr:hover td.fail:not(.sel) { background-color: #ffeef1; }
+.sg td.sel { background: #e3ebff !important; }
+.sg td.act { box-shadow: inset 0 0 0 2px var(--blue); background: #fff !important; }
+.sg td.act:not(.st-0):not(.st-1) { position: relative; z-index: 1; }
+.sg td.editing { padding: 0; box-shadow: inset 0 0 0 2px var(--blue); }
+.sg td.editing input, .sg td.editing select {
+  width: 100%; height: 30px; border: 0; border-radius: 0; padding: 0 6px; box-shadow: none; background: #fff; text-align: inherit; font-weight: 600;
+}
+.sg td.editing.num input { direction: ltr; text-align: center; }
+.sg td .pill { font-size: 11.5px; padding: 0 8px; }
+.sg td.act-col { padding: 0 2px; }
+.sg td.act-col .icon-btn { width: 28px; height: 28px; }
+.sg td.act-col .icon-btn .ic { width: 16px; height: 16px; }
+.sg .sum-col { background: #fafbff; font-weight: 700; }
+.sg tbody tr.row-new td { animation: rowIn .6s ease; }
+@keyframes rowIn { from { background: #fff8d6; } }
+
+.pager { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 10px; font-size: 13px; }
+.grid-empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+.sg thead tr.r1 th { white-space: nowrap; padding: 0 8px; }
+.sg thead tr.r1 th .units { display: inline; margin-inline-start: 6px; }
